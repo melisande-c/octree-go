@@ -37,6 +37,11 @@ func (f *minFinder) search(coords [3]int) {
 }
 
 func (f *minFinder) traverse(node *data_structure.Node, coords [3]int) {
+	dist, _ := distToCube(coords, node.XBounds, node.YBounds, node.ZBounds)
+	if dist >= f.current_min {
+		return
+	}
+
 	is_in_bounds := isInBounds(coords, node.XBounds, node.YBounds, node.ZBounds)
 	if node.IsLeaf && node.ContainsData && is_in_bounds {
 		f.current_min = 0
