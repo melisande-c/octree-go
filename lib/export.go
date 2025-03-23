@@ -9,6 +9,8 @@ import (
 	"github.com/melisande-c/octree-go/data_structure"
 )
 
+var treeRefs = make(map[uintptr]*data_structure.Tree)
+
 func numpy2go(data *C.int, length C.int) []int {
 	slice := unsafe.Slice(data, length)
 	slice_cast := make([]int, length)
@@ -26,6 +28,60 @@ func numpy2BinData3D(data *C.int, shape [3]int) data_structure.BinData3D {
 	}
 	return data_structure.BinData3D{
 		Data: slice_bool, X: shape[0], Y: shape[1], Z: shape[2],
+	}
+}
+
+//export NewOcTree
+func NewOcTree(
+	data *C.int,
+	x_data_shape C.int,
+	y_data_shape C.int,
+	z_data_shape C.int,
+) uintptr {
+	data_shape := [3]C.int{x_data_shape, y_data_shape, z_data_shape}
+	var data_shape_cast [3]int
+	for i, s := range data_shape {
+		data_shape_cast[i] = int(s)
+	}
+	bin_data := numpy2BinData3D(data, data_shape_cast)
+
+	tree := data_structure.NewTree(1, bin_data)
+	tree_ref := &tree
+	ptr := uintptr(unsafe.Pointer(tree_ref))
+	treeRefs[ptr] = tree_ref
+
+	return ptr
+}
+
+//export DeleteOcTree
+func DeleteOcTree(ptr uintptr) {
+	delete(treeRefs, ptr)
+}
+
+//export FindTreeMinDist
+func FindTreeMinDist(
+	ptr unsafe.Pointer,
+	x_coord C.int,
+	y_coord C.int,
+	z_coord C.int,
+	out_dist *C.double,
+	x_out_loc *C.int,
+	y_out_loc *C.int,
+	z_out_loc *C.int,
+) {
+	tree := (*data_structure.Tree)(ptr)
+	coords := [3]C.int{x_coord, y_coord, z_coord}
+
+	out_loc := [3]*C.int{x_out_loc, y_out_loc, z_out_loc}
+	var coords_cast [3]int
+	for i, c := range coords {
+		coords_cast[i] = int(c)
+	}
+
+	min_dist, min_loc := algo.FindMinLoc(*tree, coords_cast)
+	*out_dist = C.double(min_dist)
+	for i, v := range min_loc {
+		*out_loc[i] = C.int(v)
 	}
 }
 

@@ -1,4 +1,5 @@
 import os
+import time
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,8 +17,68 @@ print(os.getcwd())
 # golib = ctypes.CDLL("libgo.so")
 # golib = npct.load_library("libgo_amd64.so", ".")
 golib = ctypes.cdll.LoadLibrary("./libgo_amd64.so")
-
 array_1d_int = npct.ndpointer(dtype=np.int32, ndim=1, flags="CONTIGUOUS")
+
+# Define function signatures
+golib.NewOcTree.argtypes = [array_1d_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+golib.NewOcTree.restype = ctypes.c_void_p
+
+golib.DeleteOcTree.argtypes = [ctypes.c_void_p]
+golib.DeleteOcTree.restype = None
+
+golib.FindTreeMinDist.restype = None
+golib.FindTreeMinDist.argtypes = [
+    ctypes.c_void_p,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.POINTER(ctypes.c_double),
+    ctypes.POINTER(ctypes.c_int),
+    ctypes.POINTER(ctypes.c_int),
+    ctypes.POINTER(ctypes.c_int),
+]
+
+class Tree:
+    def __init__(self, bin_data: NDArray[np.int_]):
+        shape_c = (ctypes.c_int * 3)(*bin_data.shape)
+        self.ptr = golib.NewOcTree(
+            bin_data.flatten(), shape_c[0], shape_c[1], shape_c[2]
+        )  # uintptr in Go
+
+    def __del__(self):
+        golib.DeleteOcTree(self.ptr)
+
+    def find_min_dist(
+        self, coords: tuple[int, int, int],
+    ) -> tuple[float, tuple[int, int, int]]:
+        
+        out_dist = ctypes.c_double(-1)
+        out_dist_ptr = ctypes.pointer(out_dist)
+
+        out_loc_x = ctypes.c_int(-1)
+        out_loc_y = ctypes.c_int(-1)
+        out_loc_z = ctypes.c_int(-1)
+        out_loc_x_ptr = ctypes.pointer(out_loc_x)
+        out_loc_y_ptr = ctypes.pointer(out_loc_y)
+        out_loc_z_ptr = ctypes.pointer(out_loc_z)
+
+        coords_c = (ctypes.c_int * 3)(*coords)
+        golib.FindTreeMinDist(
+            self.ptr,
+            coords_c[0],
+            coords_c[1],
+            coords_c[2],
+            out_dist_ptr,
+            out_loc_x_ptr,
+            out_loc_y_ptr,
+            out_loc_z_ptr,
+        )
+
+        out_dist_python = out_dist.value
+        out_loc_python = (out_loc_x.value, out_loc_y.value, out_loc_z.value)
+        return (out_dist_python, out_loc_python)
+
+
 golib.FindMinDist.restype = None
 golib.FindMinDist.argtypes = [
     ctypes.c_int,
@@ -84,30 +145,44 @@ def find_min_dist(
 img = tifffile.imread(
     "/Users/melisande.croft/Documents/Data/5639253/Multilabel_U-Net_dataset_B.subtilis/training/instance_segmentation_GT/train_18.tif"
 )
-array = np.zeros((*img.shape, 16), dtype=np.int32)
+array = np.zeros((*img.shape, 256), dtype=np.int32)
 array[img != 0, :] = 1
 
 rng = np.random.default_rng()
-n_points = 50
+n_points = 256
 start = np.zeros(3, dtype=int)
 start[-1] = array.shape[2] // 2
 end = np.array(array.shape)
 end[-1] = (array.shape[2] // 2) + 1
 points = rng.integers(start, end, (n_points, 3))
 
+t0 = time.time()
+tree = Tree(array)
+print(f"Time taken to build Octree {time.time()-t0:.2f}s")
 locs: list[tuple[int, int, int]] = []
 for point in points:
     query = tuple(point)
     # query = (0, 0, array.shape[2]//2)
-    dist, loc = find_min_dist(query, array)
+    t0 = time.time()
+    dist, loc = tree.find_min_dist(query)
+    print(f"Time taken to query point {time.time()-t0:.2f}s")
     locs.append(loc)
     print(dist, loc)
+
+
+# locs: list[tuple[int, int, int]] = []
+# for point in points:
+#     query = tuple(point)
+#     # query = (0, 0, array.shape[2]//2)
+#     dist, loc = find_min_dist(query, array)
+#     locs.append(loc)
+#     print(dist, loc)
 
 fig, ax = plt.subplots()
 # z = 0
 z = array.shape[2] // 2
 # z = 8
-ax.imshow(array[:, :, z])
+ax.imshow(array[:, :, z], "gray")
 
 for query, loc in zip(points, locs):
     ax.plot(query[1], query[0], "x", c="cyan")
