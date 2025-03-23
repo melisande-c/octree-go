@@ -69,7 +69,7 @@ def find_min_dist(
     return (out_dist_python, out_loc_python)
 
 
-# n = 128
+# n = 1024
 # array = np.zeros((n, n, n), dtype=np.int32)
 # ii, jj, kk = np.mgrid[:n, :n, :n]
 # r = n / 4
@@ -77,25 +77,41 @@ def find_min_dist(
 # jj = jj - n/2
 # kk = kk - n/2
 # array[(ii**2 + jj**2 + kk**2) < r**2] = 1
+# array = array[:, :, n//2-4:n//2+4]
 
 # array[6:10, 6:10, 16] = 1
 
-img = tifffile.imread("/Users/melisande.croft/Documents/Data/5639253/Multilabel_U-Net_dataset_B.subtilis/training/instance_segmentation_GT/train_18.tif")
-array = np.zeros((*img.shape, 1024), dtype=np.int32)
-array[img != 0, 1024//2] = 1
+img = tifffile.imread(
+    "/Users/melisande.croft/Documents/Data/5639253/Multilabel_U-Net_dataset_B.subtilis/training/instance_segmentation_GT/train_18.tif"
+)
+array = np.zeros((*img.shape, 16), dtype=np.int32)
+array[img != 0, :] = 1
 
-query = (616, 313, 1024//2)
-# query = (0, 0, 0 )
-dist, loc = find_min_dist(query, array)
-print(dist, loc)
+rng = np.random.default_rng()
+n_points = 50
+start = np.zeros(3, dtype=int)
+start[-1] = array.shape[2] // 2
+end = np.array(array.shape)
+end[-1] = (array.shape[2] // 2) + 1
+points = rng.integers(start, end, (n_points, 3))
+
+locs: list[tuple[int, int, int]] = []
+for point in points:
+    query = tuple(point)
+    # query = (0, 0, array.shape[2]//2)
+    dist, loc = find_min_dist(query, array)
+    locs.append(loc)
+    print(dist, loc)
 
 fig, ax = plt.subplots()
 # z = 0
-z = array.shape[2] //2
+z = array.shape[2] // 2
 # z = 8
-ax.imshow(array[:,:,z])
+ax.imshow(array[:, :, z])
 
-ax.plot(query[1], query[0], "x", c="cyan")
-ax.plot(loc[1], loc[0], "rx")
+for query, loc in zip(points, locs):
+    ax.plot(query[1], query[0], "x", c="cyan")
+    ax.plot(loc[1], loc[0], "rx")
+    ax.plot([query[1], loc[1]], [query[0], loc[0]], "--", c="green", linewidth=1.5)
 
 plt.show()

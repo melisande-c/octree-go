@@ -14,15 +14,17 @@ func NewTree(max_resolution int, data BinData3D) Tree {
 }
 
 func createNode(max_resolution int, data BinData3D, coords [3]int) Node {
+	all_max_res := true
 	for _, d := range [3]int{data.X, data.Y, data.Z} {
-		if d <= max_resolution {
-			return Node{
-				IsLeaf:       true,
-				ContainsData: data.Any(),
-				XBounds:      [2]int{coords[0], coords[0] + data.X},
-				YBounds:      [2]int{coords[1], coords[1] + data.Y},
-				ZBounds:      [2]int{coords[2], coords[2] + data.Z},
-			}
+		all_max_res = all_max_res && d <= max_resolution
+	}
+	if all_max_res {
+		return Node{
+			IsLeaf:       true,
+			ContainsData: data.Any(),
+			XBounds:      [2]int{coords[0], coords[0] + data.X},
+			YBounds:      [2]int{coords[1], coords[1] + data.Y},
+			ZBounds:      [2]int{coords[2], coords[2] + data.Z},
 		}
 	}
 	if data.All() || !data.Any() {
@@ -34,7 +36,7 @@ func createNode(max_resolution int, data BinData3D, coords [3]int) Node {
 			ZBounds:      [2]int{coords[2], coords[2] + data.Z},
 		}
 	}
-	oc_data, oc_coords := splitOcs(data, coords)
+	oc_data, oc_coords := splitOcs(data, coords, max_resolution)
 	var child_nodes [8]*Node
 	for i := 0; i < 8; i++ {
 		child_node := createNode(max_resolution, oc_data[i], oc_coords[i])
@@ -50,11 +52,17 @@ func createNode(max_resolution int, data BinData3D, coords [3]int) Node {
 	}
 }
 
-func splitOcs(data BinData3D, coords [3]int) ([8]BinData3D, [8][3]int) {
+func splitOcs(
+	data BinData3D, coords [3]int, max_resolution int,
+) ([8]BinData3D, [8][3]int) {
 	var split_data [8]BinData3D
 	var split_coords [8][3]int
 
-	extent_0 := [3]int{data.X / 2, data.Y / 2, data.Z / 2}
+	extent_0 := [3]int{
+		max(max_resolution, data.X/2),
+		max(max_resolution, data.Y/2),
+		max(max_resolution, data.Z/2),
+	}
 	extent_1 := [3]int{data.X - extent_0[0], data.Y - extent_0[1], data.Z - extent_0[2]}
 	extent := [2][3]int{extent_0, extent_1}
 

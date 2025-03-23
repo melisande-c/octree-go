@@ -25,8 +25,9 @@ func circle(size int, r int) data_structure.BinData3D {
 
 func main() {
 	bin_image := circle(32, 8)
-	tree := data_structure.NewTree(1, bin_image)
-	min_d, loc := algo.FindMinLoc(tree, [3]int{0, 0, 0})
+	bin_slice := bin_image.GetSlice(0, 32, 0, 32, 16-4, 8)
+	tree := data_structure.NewTree(1, bin_slice)
+	min_d, loc := algo.FindMinLoc(tree, [3]int{0, 0, 4})
 	fmt.Println(min_d, loc)
 
 	// n := 6
