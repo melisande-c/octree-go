@@ -1,4 +1,4 @@
-package data_structure
+package data
 
 type BinData3D struct {
 	Data    []bool
