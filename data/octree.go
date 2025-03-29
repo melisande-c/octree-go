@@ -1,5 +1,7 @@
 package data
 
+import "sync"
+
 type OcTree struct {
 	MaxRes int
 	Root   OcNode
@@ -14,15 +16,27 @@ type OcNode struct {
 	ZBounds      [2]int
 }
 
+func (n *OcNode) Bounds() [2][3]int {
+	var bounds [2][3]int
+	for i, dimBounds := range [3][2]int{n.XBounds, n.YBounds, n.ZBounds} {
+		for j, b := range dimBounds {
+			bounds[j][i] = b
+		}
+	}
+	return bounds
+}
+
 func NewTree(maxRes int, data BinData3D) OcTree {
 	tree := OcTree{
 		MaxRes: maxRes,
-		Root:   createNode(maxRes, data, [3]int{0, 0, 0}),
+		Root:   createRoot(maxRes, data, [3]int{0, 0, 0}),
 	}
 	return tree
 }
 
-func createNode(maxRes int, data BinData3D, coords [3]int) OcNode {
+// TODO find a way to reduce duplication across createRoot and createNode
+// createRoot is the same a createNode but creates the child nodes concurrently
+func createRoot(maxRes int, data BinData3D, coords [3]int) OcNode {
 	allMaxRes := true
 	for _, d := range [3]int{data.X, data.Y, data.Z} {
 		allMaxRes = allMaxRes && d <= maxRes
@@ -45,12 +59,78 @@ func createNode(maxRes int, data BinData3D, coords [3]int) OcNode {
 			ZBounds:      [2]int{coords[2], coords[2] + data.Z},
 		}
 	}
-	ocData, OcCoords := splitOcs(data, coords, maxRes)
+
+	ocData, ocCoords := splitOcs(data, coords, maxRes)
+
+	return OcNode{
+		Children:     childNodesAsync(maxRes, ocData, ocCoords),
+		IsLeaf:       false,
+		ContainsData: data.Any(),
+		XBounds:      [2]int{coords[0], coords[0] + data.X},
+		YBounds:      [2]int{coords[1], coords[1] + data.Y},
+		ZBounds:      [2]int{coords[2], coords[2] + data.Z},
+	}
+}
+
+func childNodesAsync(maxRes int, ocData [8]BinData3D, ocCoords [8][3]int) [8]*OcNode {
 	var childNodes [8]*OcNode
-	for i := 0; i < 8; i++ {
-		cn := createNode(maxRes, ocData[i], OcCoords[i])
+	var wg sync.WaitGroup
+	wg.Add(8)
+	resultChan := make(chan OcNode, 8)
+
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	for i := range 8 {
+		go func() {
+			defer wg.Done()
+			resultChan <- createNode(maxRes, ocData[i], ocCoords[i])
+		}()
+	}
+	i := 0
+	for n := range resultChan {
+		childNodes[i] = &n
+		i++
+	}
+	return childNodes
+}
+
+func createNode(
+	maxRes int, data BinData3D, coords [3]int,
+) OcNode {
+	allMaxRes := true
+	for _, d := range [3]int{data.X, data.Y, data.Z} {
+		allMaxRes = allMaxRes && d <= maxRes
+	}
+	if allMaxRes {
+		return OcNode{
+			IsLeaf:       true,
+			ContainsData: data.Any(),
+			XBounds:      [2]int{coords[0], coords[0] + data.X},
+			YBounds:      [2]int{coords[1], coords[1] + data.Y},
+			ZBounds:      [2]int{coords[2], coords[2] + data.Z},
+		}
+	}
+	if data.All() || !data.Any() {
+		return OcNode{
+			IsLeaf:       true,
+			ContainsData: data.Any(),
+			XBounds:      [2]int{coords[0], coords[0] + data.X},
+			YBounds:      [2]int{coords[1], coords[1] + data.Y},
+			ZBounds:      [2]int{coords[2], coords[2] + data.Z},
+		}
+	}
+
+	ocData, ocCoords := splitOcs(data, coords, maxRes)
+	var childNodes [8]*OcNode
+
+	for i := range 8 {
+		cn := createNode(maxRes, ocData[i], ocCoords[i])
 		childNodes[i] = &cn
 	}
+
 	return OcNode{
 		Children:     childNodes,
 		IsLeaf:       false,

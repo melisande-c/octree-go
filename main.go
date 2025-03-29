@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"github.com/melisande-c/octree-go/algo"
-	"github.com/melisande-c/octree-go/data_structure"
+	"github.com/melisande-c/octree-go/data"
 )
 
-func circle(size int, r int) data_structure.BinData3D {
+func circle(size int, r int) data.BinData3D {
 	img := make([]bool, size*size*size)
 	c := size / 2
 	for i := 0; i < size; i++ {
@@ -20,14 +20,17 @@ func circle(size int, r int) data_structure.BinData3D {
 			}
 		}
 	}
-	return data_structure.BinData3D{Data: img, X: size, Y: size, Z: size}
+	return data.BinData3D{Data: img, X: size, Y: size, Z: size}
 }
 
 func main() {
 	bin_image := circle(32, 8)
 	bin_slice := bin_image.GetSlice(0, 32, 0, 32, 16-4, 8)
-	tree := data_structure.NewTree(1, bin_slice)
-	min_d, loc := algo.FindMinLoc(tree, [3]int{0, 0, 4})
+
+	tree := data.NewTree(1, bin_slice)
+	offset := [3]int{0, 0, 0}
+	scaling := [3]float64{2, 2, 1}
+	min_d, loc := algo.FindMinLoc(tree, [3]int{25, 3, 4}, offset, scaling)
 	fmt.Println(min_d, loc)
 
 	// n := 6

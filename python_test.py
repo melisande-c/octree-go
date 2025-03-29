@@ -1,5 +1,6 @@
 import os
 import time
+from typing import Optional
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -26,17 +27,24 @@ golib.NewOcTree.restype = ctypes.c_void_p
 golib.DeleteOcTree.argtypes = [ctypes.c_void_p]
 golib.DeleteOcTree.restype = None
 
-golib.FindTreeMinDist.restype = None
-golib.FindTreeMinDist.argtypes = [
+golib.FindMinDist.restype = None
+golib.FindMinDist.argtypes = [
     ctypes.c_void_p,
     ctypes.c_int,
     ctypes.c_int,
     ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
     ctypes.POINTER(ctypes.c_double),
     ctypes.POINTER(ctypes.c_int),
     ctypes.POINTER(ctypes.c_int),
     ctypes.POINTER(ctypes.c_int),
 ]
+
 
 class Tree:
     def __init__(self, bin_data: NDArray[np.int_]):
@@ -49,9 +57,16 @@ class Tree:
         golib.DeleteOcTree(self.ptr)
 
     def find_min_dist(
-        self, coords: tuple[int, int, int],
+        self,
+        coords: tuple[int, int, int],
+        offset: Optional[tuple[int, int, int]] = None,
+        scaling: Optional[tuple[float, float, float]] = None,
     ) -> tuple[float, tuple[int, int, int]]:
-        
+        if offset is None:
+            offset = (0, 0, 0)
+        if scaling is None:
+            scaling = (1, 1, 1)
+
         out_dist = ctypes.c_double(-1)
         out_dist_ptr = ctypes.pointer(out_dist)
 
@@ -63,11 +78,19 @@ class Tree:
         out_loc_z_ptr = ctypes.pointer(out_loc_z)
 
         coords_c = (ctypes.c_int * 3)(*coords)
-        golib.FindTreeMinDist(
+        offset_c = (ctypes.c_int * 3)(*offset)
+        scaling_c = (ctypes.c_double * 3)(*scaling)
+        golib.FindMinDist(
             self.ptr,
             coords_c[0],
             coords_c[1],
             coords_c[2],
+            offset_c[0],
+            offset_c[1],
+            offset_c[2],
+            scaling_c[0],
+            scaling_c[1],
+            scaling_c[2],
             out_dist_ptr,
             out_loc_x_ptr,
             out_loc_y_ptr,
@@ -79,55 +102,55 @@ class Tree:
         return (out_dist_python, out_loc_python)
 
 
-golib.FindMinDist.restype = None
-golib.FindMinDist.argtypes = [
-    ctypes.c_int,
-    ctypes.c_int,
-    ctypes.c_int,
-    array_1d_int,
-    ctypes.c_int,
-    ctypes.c_int,
-    ctypes.c_int,
-    ctypes.POINTER(ctypes.c_double),
-    ctypes.POINTER(ctypes.c_int),
-    ctypes.POINTER(ctypes.c_int),
-    ctypes.POINTER(ctypes.c_int),
-]
+# golib.FindMinDist.restype = None
+# golib.FindMinDist.argtypes = [
+#     ctypes.c_int,
+#     ctypes.c_int,
+#     ctypes.c_int,
+#     array_1d_int,
+#     ctypes.c_int,
+#     ctypes.c_int,
+#     ctypes.c_int,
+#     ctypes.POINTER(ctypes.c_double),
+#     ctypes.POINTER(ctypes.c_int),
+#     ctypes.POINTER(ctypes.c_int),
+#     ctypes.POINTER(ctypes.c_int),
+# ]
 
 
-def find_min_dist(
-    coords: tuple[int, int, int], bin_data: NDArray[np.int_]
-) -> tuple[float, tuple[int, int, int]]:
-    out_dist = ctypes.c_double(-1)
-    out_dist_ptr = ctypes.pointer(out_dist)
+# def find_min_dist(
+#     coords: tuple[int, int, int], bin_data: NDArray[np.int_]
+# ) -> tuple[float, tuple[int, int, int]]:
+#     out_dist = ctypes.c_double(-1)
+#     out_dist_ptr = ctypes.pointer(out_dist)
 
-    out_loc_x = ctypes.c_int(-1)
-    out_loc_y = ctypes.c_int(-1)
-    out_loc_z = ctypes.c_int(-1)
-    out_loc_x_ptr = ctypes.pointer(out_loc_x)
-    out_loc_y_ptr = ctypes.pointer(out_loc_y)
-    out_loc_z_ptr = ctypes.pointer(out_loc_z)
+#     out_loc_x = ctypes.c_int(-1)
+#     out_loc_y = ctypes.c_int(-1)
+#     out_loc_z = ctypes.c_int(-1)
+#     out_loc_x_ptr = ctypes.pointer(out_loc_x)
+#     out_loc_y_ptr = ctypes.pointer(out_loc_y)
+#     out_loc_z_ptr = ctypes.pointer(out_loc_z)
 
-    coords_c = (ctypes.c_int * 3)(*coords)
-    shape_c = (ctypes.c_int * 3)(*bin_data.shape)
+#     coords_c = (ctypes.c_int * 3)(*coords)
+#     shape_c = (ctypes.c_int * 3)(*bin_data.shape)
 
-    golib.FindMinDist(
-        coords_c[0],
-        coords_c[1],
-        coords_c[2],
-        bin_data.flatten(),
-        shape_c[0],
-        shape_c[1],
-        shape_c[2],
-        out_dist_ptr,
-        out_loc_x_ptr,
-        out_loc_y_ptr,
-        out_loc_z_ptr,
-    )
+#     golib.FindMinDist(
+#         coords_c[0],
+#         coords_c[1],
+#         coords_c[2],
+#         bin_data.flatten(),
+#         shape_c[0],
+#         shape_c[1],
+#         shape_c[2],
+#         out_dist_ptr,
+#         out_loc_x_ptr,
+#         out_loc_y_ptr,
+#         out_loc_z_ptr,
+#     )
 
-    out_dist_python = out_dist.value
-    out_loc_python = (out_loc_x.value, out_loc_y.value, out_loc_z.value)
-    return (out_dist_python, out_loc_python)
+#     out_dist_python = out_dist.value
+#     out_loc_python = (out_loc_x.value, out_loc_y.value, out_loc_z.value)
+#     return (out_dist_python, out_loc_python)
 
 
 # n = 1024
@@ -145,11 +168,11 @@ def find_min_dist(
 img = tifffile.imread(
     "/Users/melisande.croft/Documents/Data/5639253/Multilabel_U-Net_dataset_B.subtilis/training/instance_segmentation_GT/train_18.tif"
 )
-array = np.zeros((*img.shape, 256), dtype=np.int32)
+array = np.zeros((*img.shape, 64), dtype=np.int32)
 array[img != 0, :] = 1
 
-rng = np.random.default_rng()
-n_points = 256
+rng = np.random.default_rng(seed=42)
+n_points = 8
 start = np.zeros(3, dtype=int)
 start[-1] = array.shape[2] // 2
 end = np.array(array.shape)
@@ -160,14 +183,16 @@ t0 = time.time()
 tree = Tree(array)
 print(f"Time taken to build Octree {time.time()-t0:.2f}s")
 locs: list[tuple[int, int, int]] = []
+t_points = time.time()
 for point in points:
     query = tuple(point)
     # query = (0, 0, array.shape[2]//2)
     t0 = time.time()
-    dist, loc = tree.find_min_dist(query)
-    print(f"Time taken to query point {time.time()-t0:.2f}s")
+    dist, loc = tree.find_min_dist(query, scaling=(0.5,0.5,0.5))
+    # print(f"Time taken to query point {time.time()-t0:.2f}s")
     locs.append(loc)
     print(dist, loc)
+print(f"Time taken to all points {time.time()-t_points:.2f}s")
 
 
 # locs: list[tuple[int, int, int]] = []
@@ -186,7 +211,7 @@ ax.imshow(array[:, :, z], "gray")
 
 for query, loc in zip(points, locs):
     ax.plot(query[1], query[0], "x", c="cyan")
-    ax.plot(loc[1], loc[0], "rx")
-    ax.plot([query[1], loc[1]], [query[0], loc[0]], "--", c="green", linewidth=1.5)
+    ax.plot(loc[1], loc[0], "x", c="magenta")
+    ax.plot([query[1], loc[1]], [query[0], loc[0]], "--", c="yellow", linewidth=1.5)
 
 plt.show()
