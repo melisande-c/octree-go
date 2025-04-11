@@ -1,18 +1,23 @@
-import os
+import ctypes
+import platform
 from typing import Optional
 
 import numpy as np
-
-import ctypes
-
 from numpy.typing import NDArray
 import numpy.ctypeslib as npct
 
-import ctypes
+# load golib 
+system = platform.system()
+if system == "Windows":
+    libpath = "./libgo.dll"
+elif (system == 'Darwin') or (system=="Linux"):
+    libpath = "./libgo.so"
+else:
+    raise RuntimeError(f"Unsupported system '{system}'.")
 
-print(os.getcwd())
+golib = ctypes.cdll.LoadLibrary(libpath)
 
-golib = ctypes.cdll.LoadLibrary("./libgo_amd64.so")
+
 array_1d_int = npct.ndpointer(dtype=np.int32, ndim=1, flags="CONTIGUOUS")
 
 # Define function signatures
