@@ -6,9 +6,9 @@ SRC_FILE=export.go
 UNAME_OS=$(uname -s)
 UNAME_ARCH=$(uname -m)
 if [[ "$UNAME_OS" == "Linux" ]]; then
-    OS="darwin"
-elif [[ "$UNAME_OS" == "Darwin" ]]; then
     OS="linux"
+elif [[ "$UNAME_OS" == "Darwin" ]]; then
+    OS="darwin"
 else
     echo "Unsupported system '$UNAME_OS'"
     exit 1
