@@ -1,0 +1,61 @@
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+
+  build:
+    runs-on: ${{ matrix.platform }}
+      strategy:
+        matrix:
+          # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+          platform: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-13]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set-up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: Build shared libraries
+      run: sh build_shared_library.sh
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-${{ matrix.platform }}
+        path: |
+          ./*.so
+          ./*.h
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./all-builds
+
+      - name: List files (debug)
+        run: find ./all-builds
+
+      - name: Flatten all build artifacts
+        run: |
+          mkdir shared_libraries
+          find all-builds -type f -exec cp {} shared_libraries/ \;
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: shared_libraries/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+
