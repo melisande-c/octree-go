@@ -3,8 +3,7 @@
 # !!! This script was written by chat GPT but I think it works !!!
 set -e
 
-SRC_FILE=./lib/export.go
-OUTPUT=libgo.so  # We always output libgo.so
+SRC_FILE=export.go
 
 # Detect OS
 UNAME_OS=$(uname -s)
@@ -15,10 +14,19 @@ if [[ "$UNAME_OS" == "Darwin" ]]; then
   echo "🛠️ macOS detected: building for platform..."
 
   GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 \
-    go build -buildmode=c-shared -o libgo.so $SRC_FILE
+    go build -buildmode=c-shared -o libgo_arm64.so $SRC_FILE
 
   GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 \
-    go build -buildmode=c-shared -o libgo.so $SRC_FILE
+    go build -buildmode=c-shared -o libgo_amd64.so $SRC_FILE
+
+  # combine arm64 and amd64
+  lipo -create -output libgo.so libgo_arm64.so libgo_amd64.so
+
+  # remove temp builds
+  rm libgo_arm64.so
+  rm libgo_amd64.so
+  rm libgo_arm64.h
+  rm libgo_amd64.h
 
   echo "✅ Built macOS shared lib: libgo.so"
 
