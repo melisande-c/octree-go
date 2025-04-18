@@ -26,10 +26,10 @@ func (n *OcNode) Bounds() [2][3]int {
 	return bounds
 }
 
-func NewTree(maxRes int, data BinData3D) OcTree {
+func NewTree(maxRes int, data BinData3D, root_offset [3]int) OcTree {
 	tree := OcTree{
 		MaxRes: maxRes,
-		Root:   createRoot(maxRes, data, [3]int{0, 0, 0}),
+		Root:   createRoot(maxRes, data, root_offset),
 	}
 	return tree
 }

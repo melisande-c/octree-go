@@ -2,16 +2,11 @@ package algo
 
 import (
 	"math"
-	"reflect"
+	"slices"
 	"sort"
 
 	"github.com/melisande-c/octree-go/data"
 )
-
-type linTransform struct {
-	Offset  [3]int
-	Scaling [3]float64
-}
 
 type minFinder struct {
 	tree          data.OcTree
@@ -19,24 +14,35 @@ type minFinder struct {
 	queueDists    []float64
 	currentMin    float64
 	currentMinLoc [3]int
-	linTransform  linTransform
+	scaling       [3]float64
 }
 
 func FindMinLoc(
-	tree data.OcTree, coords [3]int, offset [3]int, scaling [3]float64,
+	tree data.OcTree, coords [3]int, scaling [3]float64,
 ) (float64, [3]int) {
-	linT := linTransform{Offset: offset, Scaling: scaling}
-	bounds := tree.Root.Bounds()
-	var tBounds [2][3]float64
-	for i, b := range bounds {
-		tBounds[i] = applyTransform(b, linT)
-	}
-	current_min := max(tBounds[1][0], tBounds[1][1], tBounds[1][2])
 	finder := minFinder{
-		tree: tree, currentMin: float64(current_min), linTransform: linT,
+		tree: tree, scaling: scaling,
 	}
+	finder.initMin(coords)
 	finder.search(coords)
 	return finder.currentMin, finder.currentMinLoc
+}
+
+func (f *minFinder) initMin(coords [3]int) {
+	bounds := f.tree.Root.Bounds()
+	var scaled [2][3]float64
+	for i, b := range bounds {
+		for j, x := range b {
+			scaled[i][j] = float64(x) * f.scaling[j]
+		}
+	}
+	dists := make([]float64, 0, 6)
+	for _, s := range scaled {
+		for j, x := range s {
+			dists = append(dists, math.Abs(float64(coords[j])-x))
+		}
+	}
+	f.currentMin = slices.Max(dists)
 }
 
 func (f *minFinder) search(coords [3]int) {
@@ -55,13 +61,13 @@ func (f *minFinder) search(coords [3]int) {
 }
 
 func (f *minFinder) traverse(node *data.OcNode, coords [3]int) {
-	dist, loc := distToCube(coords, node.Bounds(), f.linTransform)
-	isInBounds := isInBounds(coords, node.XBounds, node.YBounds, node.ZBounds)
+	dist, loc := distToCube(coords, node.Bounds(), f.scaling)
 	// quick return if dist is greater than current min
-	if dist > f.currentMin {
+	if dist >= f.currentMin {
 		return
 	}
 
+	isInBounds := isInBounds(coords, node.XBounds, node.YBounds, node.ZBounds)
 	if node.IsLeaf && node.ContainsData && isInBounds {
 		f.currentMin = 0
 		f.currentMinLoc = coords
@@ -79,7 +85,7 @@ func (f *minFinder) traverse(node *data.OcNode, coords [3]int) {
 	cubeDists := make([]float64, 0, 8)
 	nodes := make([]*data.OcNode, 0, 8)
 	for _, n := range node.Children {
-		dist, _ := distToCube(coords, n.Bounds(), f.linTransform)
+		dist, _ := distToCube(coords, n.Bounds(), f.scaling)
 		if n.ContainsData {
 			cubeDists = append(cubeDists, dist)
 			nodes = append(nodes, n)
@@ -141,38 +147,7 @@ func argMin(slice []float64) int {
 	return currentMinIdx
 }
 
-func applyTransform(location [3]int, linTransform linTransform) [3]float64 {
-	var transformed [3]float64
-	for i := range 3 {
-		transformed[i] = float64(location[i]+linTransform.Offset[i]) * (linTransform.Scaling[i])
-
-	}
-	return transformed
-}
-
-func applyInverseTransform(tLocation [3]float64, linTransform linTransform) [3]int {
-	var inv_transformed [3]int
-	for i := range 3 {
-		// TODO: find a way to prevent floating point errors
-		v := (tLocation[i] / linTransform.Scaling[i]) - float64(linTransform.Offset[i])
-		inv_transformed[i] = int(math.Round(v))
-	}
-	return inv_transformed
-}
-
-func distToCube(
-	coords [3]int, bounds [2][3]int, linTransform linTransform,
-) (float64, [3]int) {
-	isIdentity := (reflect.DeepEqual(linTransform.Offset, [3]int{0, 0, 0}) &&
-		reflect.DeepEqual(linTransform.Scaling, [3]float64{1, 1, 1}))
-	if isIdentity {
-		return distToCubeNoTransform(coords, bounds)
-	} else {
-		return distToCubeTransform(coords, bounds, linTransform)
-	}
-}
-
-func distToCubeNoTransform(coords [3]int, bounds [2][3]int) (float64, [3]int) {
+func distToCube(coords [3]int, bounds [2][3]int, scaling [3]float64) (float64, [3]int) {
 	var closestPoint [3]int
 	for i, c := range coords {
 		if (bounds[0][i] <= c) && (c < bounds[1][i]) {
@@ -183,42 +158,17 @@ func distToCubeNoTransform(coords [3]int, bounds [2][3]int) (float64, [3]int) {
 			closestPoint[i] = bounds[1][i] - 1
 		}
 	}
-	dist := math.Sqrt(
-		math.Pow(float64(coords[0])-float64(closestPoint[0]), 2) +
-			math.Pow(float64(coords[1])-float64(closestPoint[1]), 2) +
-			math.Pow(float64(coords[2])-float64(closestPoint[2]), 2),
-	)
-	return dist, closestPoint
-}
-
-func distToCubeTransform(
-	coords [3]int, bounds [2][3]int, linTransform linTransform,
-) (float64, [3]int) {
-	// fmt.Printf("Applying transform %+v\n", linTransform)
-	var tBounds [2][3]float64 // transformed bounds
-	for i, b := range bounds {
-		tBounds[i] = applyTransform(b, linTransform)
+	var sCoords [3]float64
+	var sClosestPoint [3]float64
+	for i := range 3 {
+		sCoords[i] = float64(coords[i]) * scaling[i]
+		sClosestPoint[i] = float64(closestPoint[i]) * scaling[i]
 	}
-	tCoords := applyTransform(coords, linTransform) // transformed coords
 
-	var tClosestPoint [3]float64
-	var closestPoint [3]int
-	for i, c := range tCoords {
-		if (tBounds[0][i] <= c) && (c < tBounds[1][i]) {
-			tClosestPoint[i] = c
-			closestPoint[i] = coords[i]
-		} else if c < tBounds[0][i] {
-			tClosestPoint[i] = tBounds[0][i]
-			closestPoint[i] = bounds[0][i]
-		} else { // bounds[i][1] <= c
-			tClosestPoint[i] = tBounds[1][i] - linTransform.Scaling[i]
-			closestPoint[i] = bounds[1][i] - 1
-		}
-	}
 	dist := math.Sqrt(
-		math.Pow(tCoords[0]-tClosestPoint[0], 2) +
-			math.Pow(tCoords[1]-tClosestPoint[1], 2) +
-			math.Pow(tCoords[2]-tClosestPoint[2], 2),
+		math.Pow(sCoords[0]-sClosestPoint[0], 2) +
+			math.Pow(sCoords[1]-sClosestPoint[1], 2) +
+			math.Pow(sCoords[2]-sClosestPoint[2], 2),
 	)
 	return dist, closestPoint
 }

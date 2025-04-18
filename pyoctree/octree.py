@@ -6,11 +6,11 @@ import numpy as np
 from numpy.typing import NDArray
 import numpy.ctypeslib as npct
 
-# load golib 
+# load golib
 system = platform.system()
 if system == "Windows":
     libpath = "./libgo.dll"
-elif (system == 'Darwin') or (system=="Linux"):
+elif (system == "Darwin") or (system == "Linux"):
     libpath = "./libgo.so"
 else:
     raise RuntimeError(f"Unsupported system '{system}'.")
@@ -21,7 +21,15 @@ golib = ctypes.cdll.LoadLibrary(libpath)
 array_1d_int = npct.ndpointer(dtype=np.int32, ndim=1, flags="CONTIGUOUS")
 
 # Define function signatures
-golib.NewOcTree.argtypes = [array_1d_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+golib.NewOcTree.argtypes = [
+    array_1d_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+]
 golib.NewOcTree.restype = ctypes.c_void_p
 
 golib.DeleteOcTree.argtypes = [ctypes.c_void_p]
@@ -30,9 +38,6 @@ golib.DeleteOcTree.restype = None
 golib.FindMinDist.restype = None
 golib.FindMinDist.argtypes = [
     ctypes.c_void_p,
-    ctypes.c_int,
-    ctypes.c_int,
-    ctypes.c_int,
     ctypes.c_int,
     ctypes.c_int,
     ctypes.c_int,
@@ -47,10 +52,20 @@ golib.FindMinDist.argtypes = [
 
 
 class Tree:
-    def __init__(self, bin_data: NDArray[np.int_]):
+    def __init__(
+        self, bin_data: NDArray[np.int_], root_offset: Optional[tuple[int, int, int]] = None
+    ):
+        if root_offset is None:
+            root_offset = (0, 0, 0)
         shape_c = (ctypes.c_int * 3)(*bin_data.shape)
         self.ptr = golib.NewOcTree(
-            bin_data.flatten(), shape_c[0], shape_c[1], shape_c[2]
+            bin_data.flatten(),
+            shape_c[0],
+            shape_c[1],
+            shape_c[2],
+            root_offset[0],
+            root_offset[1],
+            root_offset[2],
         )  # uintptr in Go
 
     def __del__(self):
@@ -59,11 +74,8 @@ class Tree:
     def find_min_dist(
         self,
         coords: tuple[int, int, int],
-        offset: Optional[tuple[int, int, int]] = None,
         scaling: Optional[tuple[float, float, float]] = None,
     ) -> tuple[float, tuple[int, int, int]]:
-        if offset is None:
-            offset = (0, 0, 0)
         if scaling is None:
             scaling = (1, 1, 1)
 
@@ -78,16 +90,12 @@ class Tree:
         out_loc_z_ptr = ctypes.pointer(out_loc_z)
 
         coords_c = (ctypes.c_int * 3)(*coords)
-        offset_c = (ctypes.c_int * 3)(*offset)
         scaling_c = (ctypes.c_double * 3)(*scaling)
         golib.FindMinDist(
             self.ptr,
             coords_c[0],
             coords_c[1],
             coords_c[2],
-            offset_c[0],
-            offset_c[1],
-            offset_c[2],
             scaling_c[0],
             scaling_c[1],
             scaling_c[2],
