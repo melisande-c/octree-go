@@ -4,7 +4,6 @@ package main
 
 import (
 	"C"
-	"fmt"
 	"unsafe"
 
 	"github.com/melisande-c/octree-go/algo"
@@ -89,11 +88,6 @@ func FindMinDist(
 	for i, v := range min_loc {
 		*out_loc[i] = C.int(v)
 	}
-}
-
-//export HelloWorld
-func HelloWorld() {
-	fmt.Println("Hello World")
 }
 
 func main() {}
