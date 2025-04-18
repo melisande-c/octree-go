@@ -8,20 +8,27 @@ import numpy.ctypeslib as npct
 
 # load golib
 system = platform.system()
-if system == "Windows":
-    libpath = "./libgo.dll"
-elif (system == "Darwin") or (system == "Linux"):
-    libpath = "./libgo.so"
-else:
-    raise RuntimeError(f"Unsupported system '{system}'.")
+if (system != "Darwin") and (system != "Linux"):
+    raise RuntimeError(
+        f"Unsupported system '{system}'. Currently only Linux and Darwin is supported."
+    )
+machine = platform.machine()
+if machine == "x86_64":
+    machine = "amd64"
+if machine not in ["arm64", "amd64"]:
+    raise RuntimeError(
+        f"Unsupported CPU '{machine}'. Currently only arm64 and amd64 is supported."
+    )
 
-golib = ctypes.cdll.LoadLibrary(libpath)
+libpath = f"octree-{system.lower()}-{machine}.os"
+
+go_octree = ctypes.cdll.LoadLibrary(libpath)
 
 
 array_1d_int = npct.ndpointer(dtype=np.int32, ndim=1, flags="CONTIGUOUS")
 
 # Define function signatures
-golib.NewOcTree.argtypes = [
+go_octree.NewOcTree.argtypes = [
     array_1d_int,
     ctypes.c_int,
     ctypes.c_int,
@@ -30,13 +37,13 @@ golib.NewOcTree.argtypes = [
     ctypes.c_int,
     ctypes.c_int,
 ]
-golib.NewOcTree.restype = ctypes.c_void_p
+go_octree.NewOcTree.restype = ctypes.c_void_p
 
-golib.DeleteOcTree.argtypes = [ctypes.c_void_p]
-golib.DeleteOcTree.restype = None
+go_octree.DeleteOcTree.argtypes = [ctypes.c_void_p]
+go_octree.DeleteOcTree.restype = None
 
-golib.FindMinDist.restype = None
-golib.FindMinDist.argtypes = [
+go_octree.FindMinDist.restype = None
+go_octree.FindMinDist.argtypes = [
     ctypes.c_void_p,
     ctypes.c_int,
     ctypes.c_int,
@@ -58,7 +65,7 @@ class Tree:
         if root_offset is None:
             root_offset = (0, 0, 0)
         shape_c = (ctypes.c_int * 3)(*bin_data.shape)
-        self.ptr = golib.NewOcTree(
+        self.ptr = go_octree.NewOcTree(
             bin_data.flatten(),
             shape_c[0],
             shape_c[1],
@@ -69,7 +76,7 @@ class Tree:
         )  # uintptr in Go
 
     def __del__(self):
-        golib.DeleteOcTree(self.ptr)
+        go_octree.DeleteOcTree(self.ptr)
 
     def find_min_dist(
         self,
@@ -91,7 +98,7 @@ class Tree:
 
         coords_c = (ctypes.c_int * 3)(*coords)
         scaling_c = (ctypes.c_double * 3)(*scaling)
-        golib.FindMinDist(
+        go_octree.FindMinDist(
             self.ptr,
             coords_c[0],
             coords_c[1],
