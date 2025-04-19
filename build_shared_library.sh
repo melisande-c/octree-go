@@ -43,7 +43,7 @@ echo "Building shared library file: '$BUILD_NAME'"
 
 # with linux use glibc version 2.28 that we just downloaded
 if [[ "$UNAME_OS" == "Linux" ]]; then
-    GOOS=$OS GOARCH=$ARCH CGO_ENABLED=1 \ 
+    GOOS=$OS GOARCH=$ARCH CGO_ENABLED=1 \
         CC="gcc -nostdlib -Wl,--rpath=$HOME/glibc-2.28/install/lib" \
         LD_LIBRARY_PATH="$HOME/glibc-2.28/install/lib" \
         LIBRARY_PATH="$HOME/glibc-2.28/install/lib" \
