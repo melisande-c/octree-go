@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
-        platform: [ubuntu-22.04, ubuntu-24.04-arm, macos-latest, macos-13]
+        platform: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-13]
     steps:
     - uses: actions/checkout@v4
 
