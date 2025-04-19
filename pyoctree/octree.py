@@ -20,7 +20,7 @@ if machine not in ["arm64", "amd64"]:
         f"Unsupported CPU '{machine}'. Currently only arm64 and amd64 is supported."
     )
 
-libpath = f"octree-{system.lower()}-{machine}.os"
+libpath = f"././octree-{system.lower()}-{machine}.so"
 
 go_octree = ctypes.cdll.LoadLibrary(libpath)
 
