@@ -37,6 +37,7 @@ if [[ "$UNAME_OS" == "Linux" ]]; then
     make -j$(nproc)
     make install
 fi
+cd
 
 BUILD_NAME=octree-$OS-$ARCH.so 
 echo "Building shared library file: '$BUILD_NAME'"
@@ -47,7 +48,8 @@ if [[ "$UNAME_OS" == "Linux" ]]; then
         CC="gcc -nostdlib -Wl,--rpath=$HOME/glibc-2.28/install/lib" \
         LD_LIBRARY_PATH="$HOME/glibc-2.28/install/lib" \
         LIBRARY_PATH="$HOME/glibc-2.28/install/lib" \
-        C_INCLUDE_PATH="$HOME/glibc-2.28/install/include"
+        C_INCLUDE_PATH="$HOME/glibc-2.28/install/include"\
+        go build -buildmode=c-shared -o $BUILD_NAME $SRC_FILE
 else
     GOOS=$OS GOARCH=$ARCH CGO_ENABLED=1 \
         go build -buildmode=c-shared -o $BUILD_NAME $SRC_FILE
