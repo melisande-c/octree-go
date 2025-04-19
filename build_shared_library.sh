@@ -1,5 +1,6 @@
 #!/bin/bash
 
+REPO_DIR=$(pwd)
 SRC_FILE=export.go
 
 # Detect OS
@@ -37,7 +38,7 @@ if [[ "$UNAME_OS" == "Linux" ]]; then
     make -j$(nproc)
     make install
 fi
-cd
+cd $REPO_DIR
 
 BUILD_NAME=octree-$OS-$ARCH.so 
 echo "Building shared library file: '$BUILD_NAME'"
