@@ -1,6 +1,7 @@
 import ctypes
 import platform
 from typing import Optional
+from pathlib import Path
 
 import numpy as np
 from numpy.typing import NDArray
@@ -20,7 +21,11 @@ if machine not in ["arm64", "amd64"]:
         f"Unsupported CPU '{machine}'. Currently only arm64 and amd64 is supported."
     )
 
-libpath = f"././octree-{system.lower()}-{machine}.so"
+
+libdir = Path(__file__).parent.resolve() / "_lib"
+libfile = f"octree-{system.lower()}-{machine}.so"
+libpath = libdir / libfile
+print("File:", libpath)
 
 go_octree = ctypes.cdll.LoadLibrary(libpath)
 
