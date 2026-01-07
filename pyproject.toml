@@ -1,6 +1,5 @@
-[build-system]
-requires = ["setuptools>=80", "setuptools-scm[simple]>=8", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["setuptools>=80", "wheel", "setuptools-scm>=8"]
+build-backend = "_build_backend"
 
 [project]
 name = "pyoctree"
@@ -14,7 +13,8 @@ authors = [
 [tool.setuptools]
 packages = ["pyoctree"]
 zip-safe = false
-ext-modules = [] # this empty list marks the wheels as platform specific
+package-data = {"pyoctree" = ["**/*.so", "**/*.dylib"]}
 
-[tool.setuptools.package-data]
-pyoctree = ["_lib/*.so"]
+[tool.setuptools_scm]
+# Configure setuptools-scm versioning
+write_to = "pyoctree/_version.py"
