@@ -54,19 +54,30 @@ jobs:
           CIBW_SKIP: "*-musllinux*"
           CIBW_ARCHS_LINUX: auto
           CIBW_ARCHS_MACOS: auto
+          # Don't use build isolation so our custom backend is available
+          CIBW_BUILD_FRONTEND: "pip; args: --no-build-isolation"
           # Install Go in Linux containers
           CIBW_BEFORE_ALL_LINUX: >-
             curl -OL https://go.dev/dl/go1.24.linux-amd64.tar.gz &&
-            tar -C /usr/local -xzf go1.24.linux-amd64.tar.gz &&
-            export PATH=$PATH:/usr/local/go/bin
-          # Build the .so file before building the wheel
-          CIBW_BEFORE_BUILD: >-
+            tar -C /usr/local -xzf go1.24.linux-amd64.tar.gz
+          # Install build dependencies and build .so (Linux)
+          CIBW_BEFORE_BUILD_LINUX: >-
+            pip install setuptools>=80 wheel setuptools-scm>=8 &&
             export PATH=$PATH:/usr/local/go/bin &&
             chmod +x {project}/build_shared_library.sh &&
             cd {project} &&
             ./build_shared_library.sh &&
             mkdir -p pyoctree/_lib &&
-            mv *.so pyoctree/_lib/ || mv *.dylib pyoctree/_lib/ &&
+            mv *.so pyoctree/_lib/ &&
+            ls -la pyoctree/_lib/
+          # Install build dependencies and build .so (macOS)
+          CIBW_BEFORE_BUILD_MACOS: >-
+            pip install setuptools>=80 wheel setuptools-scm>=8 &&
+            chmod +x {project}/build_shared_library.sh &&
+            cd {project} &&
+            ./build_shared_library.sh &&
+            mkdir -p pyoctree/_lib &&
+            mv *.so pyoctree/_lib/ &&
             ls -la pyoctree/_lib/
         run: |
           cibuildwheel --output-dir wheelhouse
