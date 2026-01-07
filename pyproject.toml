@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=80", "setuptools-scm[simple]>=8", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyoctree"
+dynamic = ["version"]
+requires-python = ">=3.10"
+description = "A package that implements the octree data structure written in Go, and an algorithm to find the minimum distance from a point to a binary mask."
+authors = [
+  {name = "Melisande Croft", email = "melisande.croft@fht.org"}
+]
+
+[tool.setuptools]
+packages = ["pyoctree"]
+zip-safe = false
+
+[tool.setuptools.package-data]
+pyoctree = ["_lib/*.so"]
