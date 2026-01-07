@@ -15,8 +15,7 @@ authors = [
 packages = ["pyoctree"]
 zip-safe = false
 
-[tool.setuptools.dist_options]
-bdist_wheel = { universal = false }
+[tool.setuptools.ext-modules] # this empty list marks the wheels as platform specific
 
 [tool.setuptools.package-data]
 pyoctree = ["_lib/*.so"]
