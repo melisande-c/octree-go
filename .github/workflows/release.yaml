@@ -20,17 +20,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # full history
-          tags: true      # make sure tags are fetched
+          fetch-depth: 0  # full history for hatch-vcs
 
       # ----------------------------
       # Go toolchain (install on host for macOS, will be in container for Linux)
       # ----------------------------
-      - name: Set up Go (macOS only)
-        if: startsWith(matrix.platform, 'macos')
+      - name: Set-up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.24"
+          go-version: '1.24'
 
       # ----------------------------
       # Python + wheel tooling
@@ -48,39 +46,11 @@ jobs:
       # ----------------------------
       # Build wheels
       # ----------------------------
-      - name: Build wheels
+      - name: Build Wheels
+        uses: pypa/cibuildwheel@v2.21.3
         env:
-          CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-*"
-          CIBW_SKIP: "*-musllinux*"
-          CIBW_ARCHS_LINUX: auto
-          CIBW_ARCHS_MACOS: auto
-          # Don't use build isolation so our custom backend is available
-          CIBW_BUILD_FRONTEND: "pip; args: --no-build-isolation"
-          # Install Go in Linux containers
-          CIBW_BEFORE_ALL_LINUX: >-
-            curl -OL https://go.dev/dl/go1.24.linux-amd64.tar.gz &&
-            tar -C /usr/local -xzf go1.24.linux-amd64.tar.gz
-          # Install build dependencies and build .so (Linux)
-          CIBW_BEFORE_BUILD_LINUX: >-
-            pip install setuptools>=80 wheel setuptools-scm>=8 &&
-            export PATH=$PATH:/usr/local/go/bin &&
-            chmod +x {project}/build_shared_library.sh &&
-            cd {project} &&
-            ./build_shared_library.sh &&
-            mkdir -p pyoctree/_lib &&
-            mv *.so pyoctree/_lib/ &&
-            ls -la pyoctree/_lib/
-          # Install build dependencies and build .so (macOS)
-          CIBW_BEFORE_BUILD_MACOS: >-
-            pip install setuptools>=80 wheel setuptools-scm>=8 &&
-            chmod +x {project}/build_shared_library.sh &&
-            cd {project} &&
-            ./build_shared_library.sh &&
-            mkdir -p pyoctree/_lib &&
-            mv *.so pyoctree/_lib/ &&
-            ls -la pyoctree/_lib/
-        run: |
-          cibuildwheel --output-dir wheelhouse
+          CIBW_ARCHS_LINUX: x86_64 aarch64
+          CIBW_ARCHS_MACOS: x86_64 arm64
 
       # ----------------------------
       # Upload wheels as artifacts
@@ -88,7 +58,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.platform }}
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: wheelhouse/*.whl
 
   release:
