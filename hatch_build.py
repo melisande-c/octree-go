@@ -39,11 +39,13 @@ class GoBuildHook(BuildHookInterface):
         machine = platform.machine()
         if machine == "x86_64":
             machine = "amd64"
+        elif machine == "aarch64":
+            machine = "arm64"
         if machine not in ["arm64", "amd64"]:
             raise RuntimeError(
                 f"Unsupported CPU '{machine}'. Currently only arm64 and amd64 is supported."
             )
-        lib_name = f"{output_name}-{sys.platform}-{machine}.{lib_ext}"
+        lib_name = f"{output_name}-{platform.system().lower()}-{machine}.{lib_ext}"
         
         # Paths
         project_root = Path(self.root)
