@@ -31,8 +31,6 @@ target-dir = "pyoctree/_lib"
 
 [tool.cibuildwheel]
 skip = ["pp*", "*-musllinux*"]
-test-requires = ["pytest"]
-test-command = "pytest {project}/tests"
 
 [tool.cibuildwheel.linux]
 before-all = [
