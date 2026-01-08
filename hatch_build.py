@@ -32,7 +32,7 @@ class GoBuildHook(BuildHookInterface):
         if sys.platform == "linux":
             lib_ext = "so"
         elif sys.platform == "darwin":
-            lib_ext = "so"
+            lib_ext = "dylib"
         else:
             raise RuntimeError(f"Unsupported platform: {sys.platform}")
 

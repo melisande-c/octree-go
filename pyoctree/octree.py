@@ -13,6 +13,10 @@ if (system != "Darwin") and (system != "Linux"):
     raise RuntimeError(
         f"Unsupported system '{system}'. Currently only Linux and Darwin is supported."
     )
+if system == "Linux":
+    ext = "so"
+if (system == "Darwin"):
+    ext = "dylib"
 machine = platform.machine()
 if machine == "x86_64":
     machine = "amd64"
@@ -23,7 +27,7 @@ if machine not in ["arm64", "amd64"]:
 
 
 libdir = Path(__file__).parent.resolve() / "_lib"
-libfile = f"octree-{system.lower()}-{machine}.so"
+libfile = f"octree-{system.lower()}-{machine}.{ext}"
 libpath = libdir / libfile
 print("File:", libpath)
 
