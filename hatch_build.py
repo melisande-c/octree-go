@@ -17,6 +17,9 @@ class GoBuildHook(BuildHookInterface):
         """
         Compile Go code and add the shared library to the wheel.
         """
+        build_data['pure_python'] = False
+        build_data["infer_tag"] = True
+
         # Get configuration from pyproject.toml
         go_source = self.config.get("go-source", ".")
         go_package = self.config.get("go-package", "export.go")
@@ -32,7 +35,7 @@ class GoBuildHook(BuildHookInterface):
             lib_ext = "so"
         else:
             raise RuntimeError(f"Unsupported platform: {sys.platform}")
-        
+
         lib_name = f"{output_name}-{sys.platform}-{platform.machine().lower()}.{lib_ext}"
         
         # Paths
