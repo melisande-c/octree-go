@@ -18,16 +18,16 @@ dependencies = [
 source = "vcs"
 
 [tool.hatch.build.targets.wheel]
-packages = ["pyoctree"]
+packages = ["python/pyoctree"]
 
 [tool.hatch.build.targets.wheel.hooks.custom]
 path = "hatch_build.py"
 
 [tool.hatch.build.hooks.custom]
-go-source = "."
+go-source = "go"
 go-package = "export.go"
 output-name = "octree"
-target-dir = "pyoctree/_lib"
+target-dir = "python/pyoctree/_lib"
 
 [tool.cibuildwheel]
 skip = ["pp*", "*-musllinux*"]
@@ -38,3 +38,10 @@ before-all = [
     "tar -C /usr/local -xzf go1.21.0.linux-*.tar.gz",
 ]
 environment = { PATH = "/usr/local/go/bin:$PATH" }
+
+[dependency-groups]
+demo = [
+    "matplotlib>=3.10.8",
+    "scikit-image>=0.25.2",
+    "ipykernel>=7.1.0",
+]
