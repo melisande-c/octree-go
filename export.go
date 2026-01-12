@@ -12,29 +12,14 @@ import (
 
 var treeRefs = make(map[uintptr]*data.OcTree)
 
-func numpy2go(data *C.int, length C.int) []int {
-	slice := unsafe.Slice(data, length)
-	slice_cast := make([]int, length)
-	for i, v := range slice {
-		slice_cast[i] = int(v)
-	}
-	return slice_cast
-}
-
-func numpy2BinData3D(array *C.int, shape [3]int) data.BinData3D {
-	slice := numpy2go(array, C.int(shape[0]*shape[1]*shape[2]))
-	slice_bool := make([]bool, len(slice))
-	for i, v := range slice {
-		slice_bool[i] = v != 0
-	}
-	return data.BinData3D{
-		Data: slice_bool, X: shape[0], Y: shape[1], Z: shape[2],
-	}
+func wrapCArray(cArray *C.ushort, length int) []uint16 {
+	// Just return a Go slice backed by C memory
+	return unsafe.Slice((*uint16)(unsafe.Pointer(cArray)), length)
 }
 
 //export NewOcTree
 func NewOcTree(
-	array *C.int,
+	array *C.ushort,
 	x_data_shape C.int,
 	y_data_shape C.int,
 	z_data_shape C.int,
@@ -43,7 +28,12 @@ func NewOcTree(
 	z_offset C.int,
 ) uintptr {
 	data_shape := [3]int{int(x_data_shape), int(y_data_shape), int(z_data_shape)}
-	bin_data := numpy2BinData3D(array, data_shape)
+	bin_data := data.BinData3D{
+		Data: wrapCArray(array, data_shape[0]*data_shape[1]*data_shape[2]),
+		X:    data_shape[0],
+		Y:    data_shape[1],
+		Z:    data_shape[2],
+	}
 
 	offset := [3]int{int(x_offset), int(y_offset), int(z_offset)}
 

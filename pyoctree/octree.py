@@ -9,14 +9,15 @@ import numpy.ctypeslib as npct
 
 # load golib
 system = platform.system()
-if (system != "Darwin") and (system != "Linux"):
+
+if system == "Linux":
+    ext = "so"
+elif (system == "Darwin"):
+    ext = "dylib"
+else:
     raise RuntimeError(
         f"Unsupported system '{system}'. Currently only Linux and Darwin is supported."
     )
-if system == "Linux":
-    ext = "so"
-if (system == "Darwin"):
-    ext = "dylib"
 machine = platform.machine()
 if machine == "x86_64":
     machine = "amd64"
@@ -33,10 +34,10 @@ libfile = f"octree-{system.lower()}-{machine}.{ext}"
 libpath = libdir / libfile
 print("File:", libpath)
 
-go_octree = ctypes.cdll.LoadLibrary(libpath)
+go_octree = ctypes.cdll.LoadLibrary(str(libpath))
 
 
-array_1d_int = npct.ndpointer(dtype=np.int32, ndim=1, flags="CONTIGUOUS")
+array_1d_int = npct.ndpointer(dtype=np.uint16, ndim=3, flags="C_CONTIGUOUS")
 
 # Define function signatures
 go_octree.NewOcTree.argtypes = [
@@ -71,13 +72,13 @@ go_octree.FindMinDist.argtypes = [
 
 class Tree:
     def __init__(
-        self, bin_data: NDArray[np.int_], root_offset: Optional[tuple[int, int, int]] = None
+        self, bin_data: NDArray[np.uint16], root_offset: Optional[tuple[int, int, int]] = None
     ):
         if root_offset is None:
             root_offset = (0, 0, 0)
         shape_c = (ctypes.c_int * 3)(*bin_data.shape)
         self.ptr = go_octree.NewOcTree(
-            bin_data.flatten(),
+            bin_data,
             shape_c[0],
             shape_c[1],
             shape_c[2],

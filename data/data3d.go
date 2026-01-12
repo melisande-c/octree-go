@@ -1,13 +1,13 @@
 package data
 
 type BinData3D struct {
-	Data    []bool
+	Data    []uint16
 	X, Y, Z int // Dimensions
 }
 
 func (d *BinData3D) Any() bool {
 	for _, v := range d.Data {
-		if v {
+		if v != 0 {
 			return true
 		}
 	}
@@ -16,7 +16,7 @@ func (d *BinData3D) Any() bool {
 
 func (d *BinData3D) All() bool {
 	for _, v := range d.Data {
-		if !v {
+		if v == 0 {
 			return false
 		}
 	}
@@ -24,7 +24,7 @@ func (d *BinData3D) All() bool {
 }
 
 // Get value at (i, j, k)
-func (d *BinData3D) Get(i, j, k int) bool {
+func (d *BinData3D) Get(i, j, k int) uint16 {
 	return d.Data[i*d.Y*d.Z+j*d.Z+k]
 }
 
@@ -39,7 +39,7 @@ func (d *BinData3D) GetSlice(i, iExtent, j, jExtent, k, kExtent int) BinData3D {
 	if k+kExtent >= d.Z {
 		kExtent = d.Z - k
 	}
-	slice := make([]bool, iExtent*jExtent*kExtent)
+	slice := make([]uint16, iExtent*jExtent*kExtent)
 	for l := i; l < i+iExtent; l++ {
 		for m := j; m < j+jExtent; m++ {
 			sd := l*d.Y*d.Z + m*d.Z
