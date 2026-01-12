@@ -1,4 +1,3 @@
-import os
 import subprocess
 import platform
 import sys
@@ -21,7 +20,7 @@ class GoBuildHook(BuildHookInterface):
         build_data["infer_tag"] = True
 
         # Get configuration from pyproject.toml
-        go_source = self.config.get("go-source", ".")
+        go_source = self.config.get("go-source", "go")
         go_package = self.config.get("go-package", "export.go")
         output_name = self.config.get(
             "output-name", "octree"
@@ -62,9 +61,10 @@ class GoBuildHook(BuildHookInterface):
         # Compile Go code to shared library
         try:
             cmd = [
-                # "CGO_ENABLED=1",
                 "go",
                 "build",
+                "-C",
+                str(project_root / go_source),
                 "-buildmode=c-shared",
                 "-o",
                 str(output_path),
