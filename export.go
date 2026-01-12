@@ -28,7 +28,7 @@ func NewOcTree(
 	z_offset C.int,
 ) uintptr {
 	data_shape := [3]int{int(x_data_shape), int(y_data_shape), int(z_data_shape)}
-	bin_data := data.BinData3D{
+	bin_data := data.BinData3DFlat{
 		Data: wrapCArray(array, data_shape[0]*data_shape[1]*data_shape[2]),
 		X:    data_shape[0],
 		Y:    data_shape[1],
@@ -37,7 +37,7 @@ func NewOcTree(
 
 	offset := [3]int{int(x_offset), int(y_offset), int(z_offset)}
 
-	tree := data.NewTree(1, bin_data, offset)
+	tree := data.NewTree(1, &bin_data, offset)
 	tree_ref := &tree
 	ptr := uintptr(unsafe.Pointer(tree_ref))
 	treeRefs[ptr] = tree_ref
