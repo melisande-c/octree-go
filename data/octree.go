@@ -37,26 +37,27 @@ func NewTree(maxRes int, data BinData3D, root_offset [3]int) OcTree {
 // TODO find a way to reduce duplication across createRoot and createNode
 // createRoot is the same a createNode but creates the child nodes concurrently
 func createRoot(maxRes int, data BinData3D, coords [3]int) OcNode {
+	shape := data.GetShape()
 	allMaxRes := true
-	for _, d := range [3]int{data.X, data.Y, data.Z} {
+	for _, d := range shape {
 		allMaxRes = allMaxRes && d <= maxRes
 	}
 	if allMaxRes {
 		return OcNode{
 			IsLeaf:       true,
 			ContainsData: data.Any(),
-			XBounds:      [2]int{coords[0], coords[0] + data.X},
-			YBounds:      [2]int{coords[1], coords[1] + data.Y},
-			ZBounds:      [2]int{coords[2], coords[2] + data.Z},
+			XBounds:      [2]int{coords[0], coords[0] + shape[0]},
+			YBounds:      [2]int{coords[1], coords[1] + shape[1]},
+			ZBounds:      [2]int{coords[2], coords[2] + shape[2]},
 		}
 	}
 	if data.All() || !data.Any() {
 		return OcNode{
 			IsLeaf:       true,
 			ContainsData: data.Any(),
-			XBounds:      [2]int{coords[0], coords[0] + data.X},
-			YBounds:      [2]int{coords[1], coords[1] + data.Y},
-			ZBounds:      [2]int{coords[2], coords[2] + data.Z},
+			XBounds:      [2]int{coords[0], coords[0] + shape[0]},
+			YBounds:      [2]int{coords[1], coords[1] + shape[1]},
+			ZBounds:      [2]int{coords[2], coords[2] + shape[2]},
 		}
 	}
 
@@ -66,9 +67,9 @@ func createRoot(maxRes int, data BinData3D, coords [3]int) OcNode {
 		Children:     childNodesAsync(maxRes, ocData, ocCoords),
 		IsLeaf:       false,
 		ContainsData: data.Any(),
-		XBounds:      [2]int{coords[0], coords[0] + data.X},
-		YBounds:      [2]int{coords[1], coords[1] + data.Y},
-		ZBounds:      [2]int{coords[2], coords[2] + data.Z},
+		XBounds:      [2]int{coords[0], coords[0] + shape[0]},
+		YBounds:      [2]int{coords[1], coords[1] + shape[1]},
+		ZBounds:      [2]int{coords[2], coords[2] + shape[2]},
 	}
 }
 
@@ -100,26 +101,27 @@ func childNodesAsync(maxRes int, ocData [8]BinData3D, ocCoords [8][3]int) [8]*Oc
 func createNode(
 	maxRes int, data BinData3D, coords [3]int,
 ) OcNode {
+	shape := data.GetShape()
 	allMaxRes := true
-	for _, d := range [3]int{data.X, data.Y, data.Z} {
+	for _, d := range shape {
 		allMaxRes = allMaxRes && d <= maxRes
 	}
 	if allMaxRes {
 		return OcNode{
 			IsLeaf:       true,
 			ContainsData: data.Any(),
-			XBounds:      [2]int{coords[0], coords[0] + data.X},
-			YBounds:      [2]int{coords[1], coords[1] + data.Y},
-			ZBounds:      [2]int{coords[2], coords[2] + data.Z},
+			XBounds:      [2]int{coords[0], coords[0] + shape[0]},
+			YBounds:      [2]int{coords[1], coords[1] + shape[1]},
+			ZBounds:      [2]int{coords[2], coords[2] + shape[2]},
 		}
 	}
 	if data.All() || !data.Any() {
 		return OcNode{
 			IsLeaf:       true,
 			ContainsData: data.Any(),
-			XBounds:      [2]int{coords[0], coords[0] + data.X},
-			YBounds:      [2]int{coords[1], coords[1] + data.Y},
-			ZBounds:      [2]int{coords[2], coords[2] + data.Z},
+			XBounds:      [2]int{coords[0], coords[0] + shape[0]},
+			YBounds:      [2]int{coords[1], coords[1] + shape[1]},
+			ZBounds:      [2]int{coords[2], coords[2] + shape[2]},
 		}
 	}
 
@@ -135,22 +137,23 @@ func createNode(
 		Children:     childNodes,
 		IsLeaf:       false,
 		ContainsData: data.Any(),
-		XBounds:      [2]int{coords[0], coords[0] + data.X},
-		YBounds:      [2]int{coords[1], coords[1] + data.Y},
-		ZBounds:      [2]int{coords[2], coords[2] + data.Z},
+		XBounds:      [2]int{coords[0], coords[0] + shape[0]},
+		YBounds:      [2]int{coords[1], coords[1] + shape[1]},
+		ZBounds:      [2]int{coords[2], coords[2] + shape[2]},
 	}
 }
 
 func splitOcs(data BinData3D, coords [3]int, maxRes int) ([8]BinData3D, [8][3]int) {
+	shape := data.GetShape()
 	var ocData [8]BinData3D
 	var ocCoords [8][3]int
 
 	e0 := [3]int{
-		max(maxRes, data.X/2),
-		max(maxRes, data.Y/2),
-		max(maxRes, data.Z/2),
+		max(maxRes, shape[0]/2),
+		max(maxRes, shape[1]/2),
+		max(maxRes, shape[2]/2),
 	}
-	e1 := [3]int{data.X - e0[0], data.Y - e0[1], data.Z - e0[2]}
+	e1 := [3]int{shape[0] - e0[0], shape[1] - e0[1], shape[2] - e0[2]}
 	extent := [2][3]int{e0, e1}
 
 	idx := 0
