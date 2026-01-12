@@ -6,8 +6,8 @@ import (
 	"C"
 	"unsafe"
 
-	"github.com/melisande-c/octree-go/algo"
-	"github.com/melisande-c/octree-go/data"
+	"github.com/melisande-c/octree-go/go/algo"
+	"github.com/melisande-c/octree-go/go/data"
 )
 
 var treeRefs = make(map[uintptr]*data.OcTree)

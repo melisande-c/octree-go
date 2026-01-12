@@ -5,7 +5,7 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/melisande-c/octree-go/data"
+	"github.com/melisande-c/octree-go/go/data"
 )
 
 type minFinder struct {
